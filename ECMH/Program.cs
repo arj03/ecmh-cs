@@ -70,9 +70,9 @@ public class MultiSet : IDisposable
         }
         else if (!IsInfinity(newPoint))
         {
-            byte[] result = new byte[64]; // Uncompressed point format
-            byte[] pubKey1 = new byte[64];
-            byte[] pubKey2 = new byte[64];
+            Span<byte> result = stackalloc byte[64]; // Uncompressed point format
+            Span<byte> pubKey1 = stackalloc byte[64];
+            Span<byte> pubKey2 = stackalloc byte[64];
 
             // Parse both points
             if (!secp256k1.PublicKeyParse(pubKey1, point) ||
@@ -84,11 +84,11 @@ public class MultiSet : IDisposable
                 throw new InvalidOperationException("Failed to add points");
 
             // Convert back to compressed format
-            byte[] compressed = new byte[33];
+            Span<byte> compressed = stackalloc byte[33];
             if (!secp256k1.PublicKeySerialize(compressed, result, Flags.SECP256K1_EC_COMPRESSED))
                 throw new InvalidOperationException("Failed to compress point");
 
-            Array.Copy(compressed, point, compressed.Length);
+            compressed.CopyTo(point);
         }
     }
 
