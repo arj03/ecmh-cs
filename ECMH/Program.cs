@@ -20,14 +20,14 @@ public class MultiSet : IDisposable
         point = new byte[33]; // Initialize as infinity point
     }
 
-    private static bool GetBit(Span<byte> bytes, int index)
+    private static bool GetBit(ReadOnlySpan<byte> bytes, int index)
     {
         byte b = bytes[index >> 3];
         byte bitMask = (byte)(0x01 << (7 - (0x07 & index)));
         return (b & bitMask) != 0x00;
     }
 
-    private byte[]? ConvertToPoint(Span<byte> xBytes)
+    private byte[]? ConvertToPoint(ReadOnlySpan<byte> xBytes)
     {
         // Create compressed point format
         Span<byte> encodedCompressedPoint = stackalloc byte[33];
@@ -45,12 +45,11 @@ public class MultiSet : IDisposable
     private Span<byte> GetPoint(byte[] sha256Buffer)
     {
         IncrementalHash sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        
+
+        Span<byte> countBytes = stackalloc byte[8];
         for (BigInteger n = 0; true; n++)
         {
-            var countBytes = new byte[8];
-            var nBytes = n.ToByteArray();
-            Array.Copy(nBytes, countBytes, nBytes.Length);
+            n.ToByteArray().CopyTo(countBytes);
 
             sha256.AppendData(countBytes);
             sha256.AppendData(sha256Buffer);
@@ -105,7 +104,7 @@ public class MultiSet : IDisposable
         AddPoint(ms.point);
     }
 
-    public void RemovePoint(Span<byte> pointToRemove)
+    public void RemovePoint(ReadOnlySpan<byte> pointToRemove)
     {
         if (pointToRemove.SequenceEqual(point))
         {
@@ -155,7 +154,7 @@ public class MultiSet : IDisposable
         return BitConverter.ToString(GetHash()).Replace("-", "");
     }
 
-    private static bool IsInfinity(Span<byte> pointBytes)
+    private static bool IsInfinity(ReadOnlySpan<byte> pointBytes)
     {
         return pointBytes.SequenceEqual(INFINITY);
     }
