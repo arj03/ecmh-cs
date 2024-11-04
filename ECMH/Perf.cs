@@ -1,5 +1,4 @@
 ﻿using ECMH;
-using System.Text;
 
 string[] messages = [
     "%iyOTTC2q6Rk5thjEbfz+BA7V4eKnoJth/s5zfeiX/CM=.sha256",
@@ -678,13 +677,12 @@ var ms = new MultiSet();
 var start = DateTime.Now;
 for (int i = 0; i < messages.Length; i++)
 {
-    var t = messages[i][1..^6];
-    ms.AddItem(Encoding.ASCII.GetBytes(t));
+    var t = messages[i][1..^7];
+    ms.AddItem(Convert.FromBase64String(t));
 }
 
-// 130ms for 668 items - 0.2 ms per item 
+// 53ms for 668 items - <0.1 ms per item 
+// JS: 340ms
 Console.WriteLine((DateTime.Now - start).TotalMilliseconds);
 
 Console.WriteLine(ms.GetHashHex());
-
-Console.WriteLine("t");
