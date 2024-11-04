@@ -7,6 +7,7 @@ namespace ECMH;
 public class MultiSet : IDisposable
 {
     private static readonly byte[] EMPTY_HASH = new byte[32];
+    private static readonly byte[] INFINITY = new byte[33];
     private const byte COMPRESSED_FIRST_BYTE_0 = 0x02;
     private const byte COMPRESSED_FIRST_BYTE_1 = 0x03;
 
@@ -21,8 +22,7 @@ public class MultiSet : IDisposable
 
     private static bool GetBit(byte[] bytes, int index)
     {
-        int byteIndex = index >> 3;
-        byte b = bytes[byteIndex];
+        byte b = bytes[index >> 3];
         byte bitMask = (byte)(0x01 << (7 - (0x07 & index)));
         return (b & bitMask) != 0x00;
     }
@@ -30,46 +30,35 @@ public class MultiSet : IDisposable
     private byte[]? ConvertToPoint(byte[] xBytes)
     {
         // Create compressed point format
-        byte[] encodedCompressedPoint = new byte[33];
+        Span<byte> encodedCompressedPoint = stackalloc byte[33];
         bool yCoordinateIsEven = !GetBit(xBytes, 0);
         encodedCompressedPoint[0] = yCoordinateIsEven ? COMPRESSED_FIRST_BYTE_0 : COMPRESSED_FIRST_BYTE_1;
-        Array.Copy(xBytes, 0, encodedCompressedPoint, 1, 32);
+        xBytes.CopyTo(encodedCompressedPoint.Slice(1, 32));
 
-        // Try to parse the point to verify it's on the curve
-        try
-        {
-            byte[] pubKey = new byte[64];
-            if (!secp256k1.PublicKeyParse(pubKey, encodedCompressedPoint))
-                return null;
-
-            return encodedCompressedPoint;
-        }
-        catch
-        {
+        Span<byte> pubKey = stackalloc byte[64];
+        if (!secp256k1.PublicKeyParse(pubKey, encodedCompressedPoint))
             return null;
-        }
+
+        return encodedCompressedPoint.ToArray();
     }
 
     private byte[] GetPoint(byte[] sha256Buffer)
     {
+        IncrementalHash sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        
         for (BigInteger n = 0; true; n++)
         {
-            using (var hash = SHA256.Create())
-            {
-                var countBytes = new byte[8];
-                var nBytes = n.ToByteArray();
-                Array.Copy(nBytes, countBytes, nBytes.Length);
+            var countBytes = new byte[8];
+            var nBytes = n.ToByteArray();
+            Array.Copy(nBytes, countBytes, nBytes.Length);
 
-                hash.TransformBlock(countBytes, 0, countBytes.Length, null, 0);
-                hash.TransformFinalBlock(sha256Buffer, 0, sha256Buffer.Length);
+            sha256.AppendData(countBytes);
+            sha256.AppendData(sha256Buffer);
 
-                byte[] xBytes = hash.Hash!;
-                var t = BitConverter.ToString(xBytes).Replace("-", "");
-                byte[] point = ConvertToPoint(xBytes);
+            var point = ConvertToPoint(sha256.GetHashAndReset());
 
-                if (point != null)
-                    return point;
-            }
+            if (point != null)
+                return point;
         }
     }
 
@@ -167,9 +156,9 @@ public class MultiSet : IDisposable
         return BitConverter.ToString(GetHash()).Replace("-", "");
     }
 
-    private bool IsInfinity(byte[] pointBytes)
+    private static bool IsInfinity(byte[] pointBytes)
     {
-        return pointBytes.All(b => b == 0);
+        return pointBytes.SequenceEqual(INFINITY);
     }
 
     public void Dispose()

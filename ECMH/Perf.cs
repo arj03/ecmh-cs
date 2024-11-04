@@ -681,7 +681,7 @@ for (int i = 0; i < messages.Length; i++)
     ms.AddItem(Convert.FromBase64String(t));
 }
 
-// 53ms for 668 items - <0.1 ms per item 
+// 48ms for 668 items - <0.1 ms per item 
 // JS: 340ms
 Console.WriteLine((DateTime.Now - start).TotalMilliseconds);
 
