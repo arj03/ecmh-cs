@@ -20,14 +20,14 @@ public class MultiSet : IDisposable
         point = new byte[33]; // Initialize as infinity point
     }
 
-    private static bool GetBit(byte[] bytes, int index)
+    private static bool GetBit(Span<byte> bytes, int index)
     {
         byte b = bytes[index >> 3];
         byte bitMask = (byte)(0x01 << (7 - (0x07 & index)));
         return (b & bitMask) != 0x00;
     }
 
-    private byte[]? ConvertToPoint(byte[] xBytes)
+    private byte[]? ConvertToPoint(Span<byte> xBytes)
     {
         // Create compressed point format
         Span<byte> encodedCompressedPoint = stackalloc byte[33];
@@ -42,7 +42,7 @@ public class MultiSet : IDisposable
         return encodedCompressedPoint.ToArray();
     }
 
-    private byte[] GetPoint(byte[] sha256Buffer)
+    private Span<byte> GetPoint(byte[] sha256Buffer)
     {
         IncrementalHash sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         
@@ -62,11 +62,11 @@ public class MultiSet : IDisposable
         }
     }
 
-    public void AddPoint(byte[] newPoint)
+    public void AddPoint(Span<byte> newPoint)
     {
         if (IsInfinity(point))
         {
-            Array.Copy(newPoint, point, newPoint.Length);
+            newPoint.CopyTo(point);
         }
         else if (!IsInfinity(newPoint))
         {
@@ -105,7 +105,7 @@ public class MultiSet : IDisposable
         AddPoint(ms.point);
     }
 
-    public void RemovePoint(byte[] pointToRemove)
+    public void RemovePoint(Span<byte> pointToRemove)
     {
         if (pointToRemove.SequenceEqual(point))
         {
@@ -113,9 +113,8 @@ public class MultiSet : IDisposable
         }
         else
         {
-            // Negate the point to remove (flip y coordinate)
-            byte[] negatedPoint = new byte[pointToRemove.Length];
-            Array.Copy(pointToRemove, negatedPoint, pointToRemove.Length);
+            // Negate the point to remove (flip y coordinate
+            var negatedPoint = pointToRemove.ToArray();
             negatedPoint[0] ^= 1; // Flip compression byte to change y coordinate sign
 
             AddPoint(negatedPoint);
@@ -140,13 +139,13 @@ public class MultiSet : IDisposable
         if (IsInfinity(point))
             return EMPTY_HASH;
 
-        byte[] uncompressed = new byte[64];
+        Span<byte> uncompressed = stackalloc byte[64];
         if (!secp256k1.PublicKeyParse(uncompressed, point))
             throw new InvalidOperationException("Failed to parse point");
 
         // BE
-        Array.Reverse(uncompressed, 0, 32);
-        Array.Reverse(uncompressed, 32, 32);
+        uncompressed.Slice(0, 32).Reverse();
+        uncompressed.Slice(32, 32).Reverse();
         
         return SHA256.HashData(uncompressed);
     }
@@ -156,7 +155,7 @@ public class MultiSet : IDisposable
         return BitConverter.ToString(GetHash()).Replace("-", "");
     }
 
-    private static bool IsInfinity(byte[] pointBytes)
+    private static bool IsInfinity(Span<byte> pointBytes)
     {
         return pointBytes.SequenceEqual(INFINITY);
     }
