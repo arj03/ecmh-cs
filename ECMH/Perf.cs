@@ -685,4 +685,4 @@ for (int i = 0; i < messages.Length; i++)
 // JS: 340ms
 Console.WriteLine((DateTime.Now - start).TotalMilliseconds);
 
-Console.WriteLine(ms.GetHashHex());
+Console.WriteLine(ms.GetHash());
