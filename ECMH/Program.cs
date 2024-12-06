@@ -125,9 +125,7 @@ public sealed class MultiSet : IDisposable
 
     private static bool GetBit(ReadOnlySpan<byte> bytes, int index)
     {
-        byte b = bytes[index >> 3];
-        byte bitMask = (byte)(0x01 << (7 - (0x07 & index)));
-        return (b & bitMask) != 0x00;
+        return (bytes[index >> 3] & (1 << (7 - (index & 7)))) != 0;
     }
 
     private byte[]? ConvertToPoint(ReadOnlySpan<byte> xBytes)
