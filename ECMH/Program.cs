@@ -1,6 +1,5 @@
 ﻿using Secp256k1Net;
 using System.Security.Cryptography;
-using System.Numerics;
 
 namespace ECMH;
 
@@ -145,12 +144,12 @@ public sealed class MultiSet : IDisposable
 
     private Span<byte> GetPoint(byte[] sha256Buffer)
     {
-        IncrementalHash sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        using var sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
         Span<byte> countBytes = stackalloc byte[8];
-        for (BigInteger n = 0; true; n++)
+        for (ulong n = 0; true; n++)
         {
-            n.ToByteArray().CopyTo(countBytes);
+            BitConverter.TryWriteBytes(countBytes, n);
 
             sha256.AppendData(countBytes);
             sha256.AppendData(sha256Buffer);
