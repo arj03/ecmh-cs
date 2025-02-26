@@ -27,9 +27,7 @@ public sealed class MultiSet : IDisposable
         if (sha256Buffer == null || sha256Buffer.SequenceEqual(EMPTY_HASH))
             return;
 
-        Span<byte> point = stackalloc byte[33];
-        GetPoint(sha256Buffer, point);
-        AddPoint(point);
+        AddPoint(GetPoint(sha256Buffer));
     }
 
     public void AddSet(MultiSet ms)
@@ -43,9 +41,7 @@ public sealed class MultiSet : IDisposable
         if (sha256Buffer == null || sha256Buffer.SequenceEqual(EMPTY_HASH))
             return;
 
-        Span<byte> point = stackalloc byte[33];
-        GetPoint(sha256Buffer, point);
-        RemovePoint(point);
+        RemovePoint(GetPoint(sha256Buffer));
     }
 
     public void RemoveSet(MultiSet ms)
@@ -120,7 +116,7 @@ public sealed class MultiSet : IDisposable
         return SHA256.HashData(uncompressed);
     }
 
-    private void GetPoint(ReadOnlySpan<byte> sha256Buffer, Span<byte> output)
+    private Span<byte> GetPoint(ReadOnlySpan<byte> sha256Buffer)
     {
         Span<byte> input = stackalloc byte[40];
         sha256Buffer.CopyTo(input.Slice(8));
@@ -134,10 +130,7 @@ public sealed class MultiSet : IDisposable
             SHA256.HashData(input, hash);
 
             if (TryCreateValidPoint(hash, candidate))
-            {
-                candidate.CopyTo(output);
-                return;
-            }
+                return candidate.ToArray();
         }
     }
 
