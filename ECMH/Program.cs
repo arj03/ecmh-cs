@@ -94,7 +94,8 @@ public sealed class MultiSet : IDisposable
         else
         {
             // Negate the point to remove (flip y coordinate)
-            var negated = pointToRemove.ToArray();
+            Span<byte> negated = stackalloc byte[33];
+            pointToRemove.CopyTo(negated);
             negated[0] ^= 1;
             AddPoint(negated);
         }
@@ -106,11 +107,10 @@ public sealed class MultiSet : IDisposable
             return EMPTY_HASH;
 
         Span<byte> uncompressed = stackalloc byte[64];
-        if (!_secp256k1.PublicKeyParse(uncompressed, _compressedPoint))
-            throw new InvalidOperationException("Failed to parse point");
+        _uncompressedPoint.AsSpan().CopyTo(uncompressed);
 
         // BE
-        uncompressed.Slice(0, 32).Reverse();
+        uncompressed[..32].Reverse();
         uncompressed.Slice(32, 32).Reverse();
 
         return SHA256.HashData(uncompressed);
@@ -119,7 +119,7 @@ public sealed class MultiSet : IDisposable
     private Span<byte> GetPoint(ReadOnlySpan<byte> sha256Buffer)
     {
         Span<byte> input = stackalloc byte[40];
-        sha256Buffer.CopyTo(input.Slice(8));
+        sha256Buffer.CopyTo(input[8..]);
 
         Span<byte> hash = stackalloc byte[32];
         Span<byte> candidate = stackalloc byte[33];
@@ -136,8 +136,8 @@ public sealed class MultiSet : IDisposable
 
     private bool TryCreateValidPoint(ReadOnlySpan<byte> xCoord, Span<byte> output)
     {
-        output[0] = (byte)((xCoord[0] >> 7) & 1) == 0 ? COMPRESSED_FIRST_BYTE_0 : COMPRESSED_FIRST_BYTE_1;
-        xCoord.CopyTo(output.Slice(1));
+        output[0] = (xCoord[0] & 0x80) == 0 ? COMPRESSED_FIRST_BYTE_0 : COMPRESSED_FIRST_BYTE_1;
+        xCoord.CopyTo(output[1..]);
 
         Span<byte> pubKey = stackalloc byte[64];
         return _secp256k1.PublicKeyParse(pubKey, output);
