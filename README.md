@@ -4,7 +4,7 @@ Implementation of the multiset hash using elliptic curves algorithm described in
 
 This is a port of a [JS implementation](https://github.com/arj03/ecmh-js) to C#.
 
-The purpose of this port are several: 
+The purpose of this port was: 
  - To use AI tools to help port code to another language and to improve the code with a focus on performance.
  - To check the performance difference between JS and a compiled language like C#.
 
