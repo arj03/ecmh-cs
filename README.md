@@ -17,4 +17,7 @@ there was an option to at least compile the code. On the other hand I have learn
 in DeepSeek is very good at coming up with correct and useful code and explaining why. These optimizations have reduced the time in perf.cs
 from around 54ms to around 41ms. Furthermore some of the last refactors also made the code more readable.
 
+Sadly Secp256k1.Net is [not thread-safe](https://github.com/zone117x/Secp256k1.Net/issues/33) so I was not able to test that. That was one
+of the great points about multiset hashing that it is trivial to parallelize.
+
 [ecmh.wiki]: https://github.com/tomasvdw/bips/blob/master/ecmh.mediawiki
