@@ -8,7 +8,6 @@ namespace ECMH;
 public sealed class MultiSet : IDisposable
 {
     private static readonly byte[] EMPTY_HASH = new byte[32];
-    private static readonly byte[] INFINITY_COMPRESSED = new byte[33];
     private const byte COMPRESSED_FIRST_BYTE_0 = 0x02;
     private const byte COMPRESSED_FIRST_BYTE_1 = 0x03;
 
@@ -22,9 +21,9 @@ public sealed class MultiSet : IDisposable
         _secp256k1 = new Secp256k1();
     }
 
-    public void AddItem(byte[] sha256Buffer)
+    public void AddItem(ReadOnlySpan<byte> sha256Buffer)
     {
-        if (sha256Buffer == null || sha256Buffer.SequenceEqual(EMPTY_HASH))
+        if (sha256Buffer.IsEmpty|| sha256Buffer.SequenceEqual(EMPTY_HASH))
             return;
 
         AddPoint(GetPoint(sha256Buffer));
@@ -36,9 +35,9 @@ public sealed class MultiSet : IDisposable
             AddPoint(ms._compressedPoint);
     }
 
-    public void RemoveItem(byte[] sha256Buffer)
+    public void RemoveItem(ReadOnlySpan<byte> sha256Buffer)
     {
-        if (sha256Buffer == null || sha256Buffer.SequenceEqual(EMPTY_HASH))
+        if (sha256Buffer.IsEmpty || sha256Buffer.SequenceEqual(EMPTY_HASH))
             return;
 
         RemovePoint(GetPoint(sha256Buffer));
@@ -154,8 +153,8 @@ public sealed class MultiSet : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ResetToInfinity()
     {
-        _compressedPoint.AsSpan().Clear();
-        _uncompressedPoint.AsSpan().Clear();
+        Array.Clear(_compressedPoint);
+        Array.Clear(_uncompressedPoint);
         _isInfinity = true;
     }
 }
