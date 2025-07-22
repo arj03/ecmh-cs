@@ -11,8 +11,8 @@ public sealed class MultiSet : IDisposable
     private const int COMPRESSED_POINT_SIZE = 33;
     private const int UNCOMPRESSED_POINT_SIZE = 64;
 
-    private const int HASH_TO_CURVE_PAYLOAD_OFFSET = 8; // nonce
-    private const int HASH_TO_CURVE_INPUT_SIZE = HASH_TO_CURVE_PAYLOAD_OFFSET + HASH_SIZE;
+    private const int HASH_TO_CURVE_NONCE_SIZE = 8;
+    private const int HASH_TO_CURVE_INPUT_SIZE = HASH_TO_CURVE_NONCE_SIZE + HASH_SIZE;
 
     // Compressed point format markers for secp256k1
     private const byte COMPRESSED_Y_EVEN = 0x02;
@@ -117,6 +117,8 @@ public sealed class MultiSet : IDisposable
 
     private void RemovePoint(ReadOnlySpan<byte> pointToRemove)
     {
+        if (_isInfinity) return;
+
         if (pointToRemove.SequenceEqual(_compressedPoint))
         {
             ResetToInfinity();
@@ -164,14 +166,14 @@ public sealed class MultiSet : IDisposable
     private bool TryGetPoint(ReadOnlySpan<byte> itemHash, Span<byte> outputPoint)
     {
         Span<byte> input = stackalloc byte[HASH_TO_CURVE_INPUT_SIZE];
-        itemHash.CopyTo(input[HASH_TO_CURVE_PAYLOAD_OFFSET..]);
+        itemHash.CopyTo(input[HASH_TO_CURVE_NONCE_SIZE..]);
 
         Span<byte> hash = stackalloc byte[HASH_SIZE];
 
         // Iterate with a nonce 'n' until the resulting hash is a valid x-coordinate on the curve.
-        for (uint n = 0; n < uint.MaxValue; n++)
+        for (ulong n = 0; n < ulong.MaxValue; n++)
         {
-            BinaryPrimitives.WriteUInt32LittleEndian(input, n);
+            BinaryPrimitives.WriteUInt64LittleEndian(input, n);
             SHA256.HashData(input, hash);
 
             if (TryCreateValidPoint(hash, outputPoint))
